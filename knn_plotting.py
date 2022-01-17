@@ -14,6 +14,29 @@ sublen_global = None
 matrix_dim_global = None
 gs = None
 cax = None
+cache = {}
+
+def get_matrix(st_a, ed_a, st_b, ed_b):
+    global a_global
+    global b_global
+    global cache
+
+    a = a_global[st_a:ed_a]
+    b = b_global[st_b:ed_b]
+
+    cache_key = (st_a, ed_a, st_b, ed_b)
+    matrix = None
+    if cache_key in cache:
+       matrix = cache[cache_key]
+    else:
+      if len(a) > 1000 * matrix_dim_global and len(b) > 1000 * matrix_dim_global:
+        # Currently GPU Matrix summaries can leave some spotty output if the input size is not large enough. So only allow GPU computation when we can be sure we will fill in the whole matrix
+        # TODO(zpzim): Implement GPU Matrix summaries which will generate the same output as the CPU version.
+        matrix = mp.abjoin_matrix(a, b, sublen_global, mwidth=matrix_dim_global, mheight=matrix_dim_global, pearson=True)
+      else:
+        matrix = mp.abjoin_matrix(a, b, sublen_global, mwidth=matrix_dim_global, mheight=matrix_dim_global, gpus=[], pearson=True)
+      cache[cache_key] = matrix
+    return matrix
 
 
 def redraw_matrix(st_a, ed_a, st_b, ed_b):
@@ -21,12 +44,8 @@ def redraw_matrix(st_a, ed_a, st_b, ed_b):
     global ax3
     global ax4
     global cax
-    global a_global
-    global b_global
-    a = a_global[st_a:ed_a]
-    b = b_global[st_b:ed_b]
 
-    matrix = mp.abjoin_matrix(a, b, sublen_global, mwidth=matrix_dim_global, mheight=matrix_dim_global, gpus=[], pearson=True)
+    matrix = get_matrix(st_a, ed_a, st_b, ed_b) 
     
     cax.remove()
     cax = ax4.matshow(matrix, extent=[st_a, ed_a, ed_b, st_b], interpolation='none')
@@ -67,7 +86,7 @@ def on_ylims_change(event_ax):
 
   
 
-def plot_matrix_interactive(a, b, sublen, matrix_dim):
+def plot_matrix_interactive(a, b, sublen, matrix_dim, filename=None):
   if b is None:
     b = a
 
@@ -92,7 +111,9 @@ def plot_matrix_interactive(a, b, sublen, matrix_dim):
   matrix_dim_a = math.floor(ratio * matrix_dim)
   matrix_dim_b = matrix_dim
 
-  matrix = mp.abjoin_matrix(a, b, sublen, mwidth=matrix_dim, mheight=matrix_dim, gpus=[], pearson=True)
+  matrix = get_matrix(0, len(a), 0, len(b))
+  print(matrix.dtype)
+  #matrix = mp.abjoin_matrix(a, b, sublen, mwidth=matrix_dim, mheight=matrix_dim, gpus=[], pearson=True)
 
   fig = plt.figure(constrained_layout=False, facecolor='0.9', figsize=(32,32))
   gs = fig.add_gridspec(nrows=2, ncols=2,  hspace=0, wspace=0, width_ratios=[1,3], height_ratios=[1,3])
@@ -127,6 +148,10 @@ def plot_matrix_interactive(a, b, sublen, matrix_dim):
   ax4.callbacks.connect('ylim_changed', on_xlims_change)
   ax4.callbacks.connect('xlim_changed', on_ylims_change)
   plt.show()
+  if filename is not None:
+    fig.savefig(filename, bbox_inches='tight')
+  return fig
+    
 
 
 
