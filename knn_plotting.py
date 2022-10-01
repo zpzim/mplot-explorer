@@ -36,6 +36,7 @@ def get_matrix(st_a, ed_a, st_b, ed_b):
       else:
         matrix = mp.abjoin_matrix(a, b, sublen_global, mwidth=matrix_dim_global, mheight=matrix_dim_global, gpus=[], pearson=True)
       cache[cache_key] = matrix
+    matrix[np.isnan(matrix)] = 0
     return matrix
 
 
