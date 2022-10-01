@@ -1,5 +1,5 @@
 # mplot-explorer
-Example Python script showing how to explore mplots interactively using pyscamp. This is a rudimentary implementation which does not support optimized panning.
+Example Python script showing how to explore mplots interactively using [pyscamp](https://github.com/zpzim/SCAMP). This is a rudimentary implementation which does not support optimized panning.
 Usage: 
 ```
 # numpy array representing the time series
